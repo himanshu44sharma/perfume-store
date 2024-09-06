@@ -3,11 +3,19 @@ pipeline {
     tools {
         nodejs '22.8.0'
     }
+    environment {
+        GIT_COMMIT = "${env.GIT_COMMIT}"
+    }
     stages {
         stage('Checkout') {
             steps {
                 // Checkout the 'main' branch
                 git branch: 'main', url: 'https://github.com/himanshu44sharma/perfume-store.git'
+            }
+        }
+        stage('Print Environment') {
+            steps {
+                sh 'env'
             }
         }
         stage('Print Versions') {
@@ -27,13 +35,18 @@ pipeline {
         }
         stage('Zip Artifacts') {
             steps {
-                sh 'zip -r $GIT_COMMIT.zip dist/'
+                sh 'zip -r ${GIT_COMMIT}.zip dist/'
             }
         }
         stage('Upload to S3') {
             steps {
-                sh 'aws s3 cp $GIT_COMMIT.zip s3://deploymain-nodejs/'
+                sh 'aws s3 cp ${GIT_COMMIT}.zip s3://deploymain-nodejs/'
             }
+        }
+    }
+    post {
+        always {
+            sh 'rm -f ${GIT_COMMIT}.zip'
         }
     }
 }
