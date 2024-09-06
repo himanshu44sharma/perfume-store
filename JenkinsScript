@@ -1,6 +1,6 @@
 pipeline {
     agent any
-    
+
     tools {
         nodejs '22.8.0'
     }
@@ -8,7 +8,8 @@ pipeline {
     stages {
         stage('print versions') {
             steps {
-                sh 'npm version'
+                sh 'npm --version'
+                sh 'node --version'
             }
         }
 
@@ -26,16 +27,22 @@ pipeline {
 
         stage('codedeploy') {
             steps {
-                step([$class: 'AWSCodeDeployPublisher', 
-                    applicationName: 'nodejs-application', 
-                    deploymentGroupAppspec: false, 
-                    deploymentGroupName: 'nodejs-application-DG', 
-                    excludes: '', 
-                    iamRoleArn: 'YOUR_IAM_ROLE_ARN', 
-                    includes: 'dist/', 
-                    proxyHost: '', 
-                    proxyPort: 0, 
-                    region: 'ap-south-1'])
+                script {
+                    try {
+                        step([$class: 'AWSCodeDeployPublisher', 
+                            applicationName: 'nodejs-application', 
+                            deploymentGroupAppspec: false, 
+                            deploymentGroupName: 'nodejs-application-DG', 
+                            excludes: '', 
+                            iamRoleArn: 'YOUR_IAM_ROLE_ARN', 
+                            includes: 'dist/', 
+                            proxyHost: '', 
+                            proxyPort: 0, 
+                            region: 'ap-south-1'])
+                    } catch (Exception e) {
+                        echo "Error during CodeDeploy: ${e}"
+                    }
+                }
             }
         }
     }
