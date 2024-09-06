@@ -4,13 +4,15 @@ pipeline {
         nodejs '22.8.0'
     }
     environment {
+        // Example environment variables from SCM or predefined
         GIT_COMMIT = "${env.GIT_COMMIT}"
+        // You can also define other environment variables here if needed
     }
     stages {
         stage('Checkout') {
             steps {
                 // Checkout the 'main' branch
-                git branch: 'main', url: 'https://github.com/himanshu44sharma/perfume-store.git'
+                checkout scm
             }
         }
         stage('Print Environment') {
@@ -35,18 +37,28 @@ pipeline {
         }
         stage('Zip Artifacts') {
             steps {
-                sh 'zip -r ${GIT_COMMIT}.zip dist/'
+                script {
+                    // Use a variable for the commit hash or timestamp if needed
+                    def zipFileName = "${env.BUILD_NUMBER}.zip"
+                    sh "zip -r ${zipFileName} dist/"
+                }
             }
         }
         stage('Upload to S3') {
             steps {
-                sh 'aws s3 cp ${GIT_COMMIT}.zip s3://deploymain-nodejs/'
+                script {
+                    def zipFileName = "${env.BUILD_NUMBER}.zip"
+                    sh "aws s3 cp ${zipFileName} s3://deploymain-nodejs/"
+                }
             }
         }
     }
     post {
         always {
-            sh 'rm -f ${GIT_COMMIT}.zip'
+            script {
+                def zipFileName = "${env.BUILD_NUMBER}.zip"
+                sh "rm -f ${zipFileName}"
+            }
         }
     }
 }
