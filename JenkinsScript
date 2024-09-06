@@ -1,63 +1,41 @@
 pipeline {
     agent any
+    
     tools {
         nodejs '22.8.0'
     }
-    environment {
-        // Example environment variables from SCM or predefined
-        GIT_COMMIT = "${env.GIT_COMMIT}"
-        // You can also define other environment variables here if needed
-    }
+
     stages {
-        stage('Checkout') {
-            steps {
-                // Checkout the 'main' branch
-                checkout scm
-            }
-        }
-        stage('Print Environment') {
-            steps {
-                sh 'env'
-            }
-        }
-        stage('Print Versions') {
+        stage('print versions') {
             steps {
                 sh 'npm version'
             }
         }
+
         stage('Install') {
             steps {
                 sh 'npm install'
             }
         }
+
         stage('Build') {
             steps {
                 sh 'npm run build'
             }
         }
-        stage('Zip Artifacts') {
+
+        stage('codedeploy') {
             steps {
-                script {
-                    // Use a variable for the commit hash or timestamp if needed
-                    def zipFileName = "${env.BUILD_NUMBER}.zip"
-                    sh "zip -r ${zipFileName} dist/"
-                }
-            }
-        }
-        stage('Upload to S3') {
-            steps {
-                script {
-                    def zipFileName = "${env.BUILD_NUMBER}.zip"
-                    sh "aws s3 cp ${zipFileName} s3://deploymain-nodejs/"
-                }
-            }
-        }
-    }
-    post {
-        always {
-            script {
-                def zipFileName = "${env.BUILD_NUMBER}.zip"
-                sh "rm -f ${zipFileName}"
+                step([$class: 'AWSCodeDeployPublisher', 
+                    applicationName: 'nodejs-application', 
+                    deploymentGroupAppspec: false, 
+                    deploymentGroupName: 'nodejs-application-DG', 
+                    excludes: '', 
+                    iamRoleArn: 'YOUR_IAM_ROLE_ARN', 
+                    includes: 'dist/', 
+                    proxyHost: '', 
+                    proxyPort: 0, 
+                    region: 'ap-south-1'])
             }
         }
     }
